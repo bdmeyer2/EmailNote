@@ -6,7 +6,6 @@ target 'EmailNote' do
   use_frameworks!
 
   # Pods for EmailNote
-  pod 'skpsmtpmessage'
-
-
+  pod 'Alamofire'
+  pod 'SwiftyJSON'
 end

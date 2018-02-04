@@ -8,23 +8,47 @@
 
 import UIKit
 import CoreGraphics
-import skpsmtpmessage
+import Alamofire
+import CloudKit
+import SwiftyJSON
 
-class NoteViewController: UIViewController, SKPSMTPMessageDelegate {
+class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManagerDelegate {
 
     @IBOutlet weak var note: UITextView!
-    @IBOutlet weak var pictureImage: UIImageView!
-    @IBOutlet weak var photoImage: UIImageView!
-    @IBOutlet weak var addImageButton: UIButton!
+    @IBOutlet weak var sendButton: UIButton!
+    @IBOutlet weak var dateButton: UIBarButtonItem!
+    @IBOutlet weak var weatherIconButton: UIBarButtonItem!
+    @IBOutlet weak var temperatureButton: UIBarButtonItem!
+    @IBOutlet weak var leftBarButton: UIBarButtonItem!
     
-    var email = ""
-    var emailMessage: SKPSMTPMessage!
+    var locationManager: CLLocationManager?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        emailMessage = SKPSMTPMessage()
-        emailMessage.delegate = self
+//        let image : UIImage = UIImage(named: "picture")!
+//        let imageView = UIImageView(frame: CGRect(x: 100, y: 0, width: 40, height: 40))
+//        imageView.contentMode = .scaleAspectFit
+//        imageView.image = image
+//        self.navigationItem.titleView = imageView
+        
+        locationManager = CLLocationManager()
+        locationManager?.delegate = self
+        locationManager?.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        locationManager?.requestWhenInUseAuthorization()
+        locationManager?.startUpdatingLocation()
+        
+        leftBarButton.title = "Logo Here"
+        setRightButtonArray()
+        
+//        if sender.isOn {
+//            temperatureLabel.text = "\(weatherDataModel.temperature)℉"
+//        } else {
+//            temperatureLabel.text = "\(weatherDataModel.temperature)℃"
+//        }
+        self.note.delegate = self
+        note.text = ""
+        note.becomeFirstResponder()
     }
 
     override func didReceiveMemoryWarning() {
@@ -32,60 +56,147 @@ class NoteViewController: UIViewController, SKPSMTPMessageDelegate {
         // Dispose of any resources that can be recreated.
     }
     
-    func messageSent(_ message: SKPSMTPMessage!) {
-    }
-    
-    func messageFailed(_ message: SKPSMTPMessage!, error: Error!) {
-        let alert = UIAlertController(title: "Something went wrong", message: "Note not sent", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: NSLocalizedString("OK", comment: "Default action"), style: .`default`, handler: { _ in }))
-        self.present(alert, animated: true, completion: nil)
-    }
-    
     func sendEmailInBackground() {
-        print(note.text)
-        emailMessage.fromEmail = "emailnoteexample@gmail.com"; //sender email address
-        emailMessage.toEmail = email;  //receiver email address
-        emailMessage.relayHost = "smtp.gmail.com";
-        emailMessage.requiresAuth = true;
-        emailMessage.login = "emailnoteexample@gmail.com"; //sender email address
-        emailMessage.pass = "!258%nes"; //sender email password
-        emailMessage.subject = "email subject header message"
-        emailMessage.wantsSecure = true
-        let messageBody = note.text
-        //for example :   NSString *messageBody = [NSString stringWithFormat:@"Tour Name: %@\nName: %@\nEmail: %@\nContact No: %@\nAddress: %@\nNote: %@",selectedTour,nameField.text,emailField.text,foneField.text,addField.text,txtView.text];
-        // Now creating plain text email message
-        let plainMsg = [
-            kSKPSMTPPartContentTypeKey : "text/plain",
-            kSKPSMTPPartMessageKey : messageBody,
-            kSKPSMTPPartContentTransferEncodingKey : "8bit"
-        ]
-        emailMessage.parts = [plainMsg]
-        //in addition : Logic for attaching file with email message.
-        /*
-         NSString *filePath = [[NSBundle mainBundle] pathForResource:@"filename" ofType:@"JPG"];
-         NSData *fileData = [NSData dataWithContentsOfFile:filePath];
-         NSDictionary *fileMsg = [NSDictionary dictionaryWithObjectsAndKeys:@"text/directory;\r\n\tx-
-         unix-mode=0644;\r\n\tname=\"filename.JPG\"",kSKPSMTPPartContentTypeKey,@"attachment;\r\n\tfilename=\"filename.JPG\"",kSKPSMTPPartContentDispositionKey,[fileData encodeBase64ForData],kSKPSMTPPartMessageKey,@"base64",kSKPSMTPPartContentTransferEncodingKey,nil];
-         emailMessage.parts = [NSArray arrayWithObjects:plainMsg,fileMsg,nil]; //including plain msg and attached file msg
-         */
-        emailMessage.send();
+        if Settings.archive == nil {
+            Settings.archive = [Note]()
+        }
+        let n = Note()
+        n.message = note.text
+        n.time = getTime()
+        Settings.archive?.append(n)
+        
+        if let iCloudID = Settings.iCloudID {
+            let parameters: Parameters = [
+                "iCloudID": iCloudID,
+                "message": note.text,
+                "email": Settings.email! // Can't get here without having an email set
+            ]
+            leftBarButton.title = "Message Sending"
+            
+            Alamofire.request("https://sendnote.brettdmeyer.com/notes", method: .post, parameters: parameters).responseJSON { response in
+                
+                self.leftBarButton.title = "Message Sent"
+                self.note.text = ""
+                
+                let when = DispatchTime.now() + 1 // change 2 to desired number of seconds
+                DispatchQueue.main.asyncAfter(deadline: when) {
+                    self.leftBarButton.title = "Logo Here"
+                }
+//                print("Request: \(String(describing: response.request))")   // original url request
+//                print("Response: \(String(describing: response.response))") // http url response
+//                print("Result: \(response.result)")                         // response serialization result
+//
+//                if let json = response.result.value {
+//                    print("JSON: \(json)") // serialized json response
+//                }
+//
+//                if let data = response.data, let utf8Text = String(data: data, encoding: .utf8) {
+//                    print("Data: \(utf8Text)") // original server data as UTF8 string
+//                }
+            }
+        } else {
+            print("userID is nil, make sure signed into icloud account");
+        }
+
     }
 
     @IBAction func sendPressed(_ sender: Any) {
-        if email == "" {
+        if Settings.email == nil {
             performSegue(withIdentifier: "settings", sender: self)
         } else {
             sendEmailInBackground()
         }
     }
     
-    @IBAction func addImagePressed(_ sender: Any) {
-        let animator = UIViewPropertyAnimator(duration: 0.15, dampingRatio: 1) {
-            let radians = CGFloat(Int(-45)) * .pi / 180
-            self.addImageButton.transform = self.addImageButton.transform.rotated(by: CGFloat(radians))
-        }
-        animator.startAnimation()
+    func textViewDidBeginEditing(_ textView: UITextView) {
+        textView.selectAll(nil)
+//        UIView.animate(withDuration: 1) {
+////            self.sendButton.heightConstraint.constant = 308
+//            self.sendButton.translatesAutoresizingMaskIntoConstraints = false
+//            NSLayoutConstraint.activate([
+//                self.sendButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: 390)
+//                ])
+//            self.view.layoutIfNeeded()
+//        }
     }
     
+    
+    
+//    @IBAction func addImagePressed(_ sender: Any) {
+//        let animator = UIViewPropertyAnimator(duration: 0.15, dampingRatio: 1) {
+//            let radians = CGFloat(Int(-45)) * .pi / 180
+//            self.addImageButton.transform = self.addImageButton.transform.rotated(by: CGFloat(radians))
+//        }
+//        animator.startAnimation()
+//    }
+    
+    func getTime() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let myString = formatter.string(from: Date())
+        let yourDate = formatter.date(from: myString)
+        formatter.dateFormat = "HH:mm"
+        let time = formatter.string(from: yourDate!)
+        
+        return time
+    }
+    
+    func setRightButtonArray() {
+        if let date = Settings.date {
+            dateButton.title? = "\(date)"
+        }
+        if let weather = Settings.weather?.temperature {
+            temperatureButton.title? = "\(weather)℃"
+        }
+    }
+    
+    func getWeather(_ lat: String, _ long: String) {
+        let parameters: Parameters = [
+            "coordinates": ["lat": lat, "lon": long]
+        ]
+        
+        Alamofire.request("https://sendnote.brettdmeyer.com/weather", method: .post, parameters: parameters).responseJSON { response in
+            if response.result.isSuccess {
+                print("Success getting web data")
+                
+                let weatherJSON : JSON = JSON(response.result.value!)
+                
+                self.updateWeatherData(json: weatherJSON)
+                
+            } else {
+                print("Error HERE: \(String(describing: response.result.error))")
+            }
+        }
+    }
+    
+    func updateWeatherData(json: JSON) {
+        Settings.weather = WeatherDataModel()
+        
+        if let weatherSetting = Settings.weather {
+            weatherSetting.temperature = Int(json["temperature"]["value"].double!)
+            weatherSetting.condition = json["weather"]["id"].intValue
+            weatherSetting.weatherIconName = weatherSetting.updateWeatherIcon(condition: weatherSetting.condition)
+        }
+        setRightButtonArray()
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let location = locations[locations.count - 1]
+        if location.horizontalAccuracy > 0 {
+            locationManager?.stopUpdatingLocation()
+            locationManager = nil
+            
+            let latitude = String(location.coordinate.latitude)
+            let longitude = String(location.coordinate.longitude)
+            
+            getWeather(latitude, longitude)
+            
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        return
+    }
+
 }
 

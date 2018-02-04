@@ -7,15 +7,39 @@
 //
 
 import UIKit
+import CloudKit
+import Alamofire
+import SwiftyJSON
+
+struct Settings {
+    static var iCloudID: String?
+    static var email: String?
+    static var date: String?
+    static var toggleFahrenheit: Bool?
+    static var archive: [Note]?
+    static var weather: WeatherDataModel?
+    static var HTTP_HEADERS: HTTPHeaders = [:]
+}
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
     var window: UIWindow?
+    var iCloudKeyStore: NSUbiquitousKeyValueStore? = NSUbiquitousKeyValueStore()
+    var token: String?
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
+        getCSRFToken()
+        setiCloudIDSetting()
+        setDateSettings()
+        loadArchive()
+
+        let defaults = UserDefaults.standard
+        Settings.email = defaults.object(forKey: "email") as? String ?? nil
+        
         return true
     }
 
@@ -27,6 +51,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func applicationDidEnterBackground(_ application: UIApplication) {
         // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
         // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+        saveArchive()
     }
 
     func applicationWillEnterForeground(_ application: UIApplication) {
@@ -41,6 +66,107 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
     }
 
-
+    func iCloudUserIDAsync(complete: @escaping (_ instance: CKRecordID?, _ error: NSError?) -> ()) {
+        let container = CKContainer.default()
+        container.fetchUserRecordID() {
+            recordID, error in
+            if error != nil {
+                print(error!.localizedDescription)
+                complete(nil, error! as NSError)
+            } else {
+                complete(recordID, nil)
+            }
+        }
+    }
+    
+    func setiCloudIDSetting() {
+        iCloudUserIDAsync() {
+            recordID, error in
+            if let userID = recordID?.recordName {
+                Settings.iCloudID = userID
+                self.loginAPI()
+            } else {
+                print("Fetched iCloudID was nil")
+            }
+        }
+    }
+    
+    func setDateSettings() {
+        let formatter = DateFormatter()
+        
+        formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        let myString = formatter.string(from: Date())
+        let yourDate = formatter.date(from: myString)
+        formatter.dateFormat = "M/d"
+        Settings.date = formatter.string(from: yourDate!)
+    }
+    
+    func loadArchive() {
+        let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Notes.plist")
+        if let data = try? Data(contentsOf: dataFilePath!) {
+            let decoder = PropertyListDecoder()
+            do {
+                Settings.archive = try decoder.decode([Note].self, from: data)
+            } catch {
+                print("error reading notes from local file \(error)")
+            }
+        }
+    }
+    
+    func saveArchive() {
+        let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Notes.plist")
+        let encoder = PropertyListEncoder()
+        do {
+            let data = try encoder.encode(Settings.archive);
+            try data.write(to: dataFilePath!)
+        } catch {
+            print("error writing notes to local file \(error)")
+        }
+    }
+    
+    func loginAPI() {
+        
+        if let savedString = iCloudKeyStore?.string(forKey: "token") {
+            print(savedString)
+        } else {
+            let parameters: Parameters = [
+                "iCloudToken": Settings.iCloudID!
+            ]
+            
+            Alamofire.request("http://emailnote.test/api/register", method: .post, parameters: parameters).responseJSON { response in
+                if response.result.isSuccess {
+                    let json : JSON = JSON(response.result.value!)
+                    print(json["token"])
+                    self.iCloudKeyStore?.set(json["token"].string, forKey: "token")
+                    self.iCloudKeyStore?.synchronize()
+                } else {
+                    print("Error: \(response.result.error)")
+                }
+            }
+        }
+    }
+    
+    func getCSRFToken() {
+        Alamofire.request("http://emailnote.test/", method: .get).responseJSON { response in
+            let headers = "\(String(describing: response.response!))".split{$0 == ":"}.map(String.init)[6]
+            let a = headers.split{$0=="="}.map(String.init)[3]
+            let csrfToken =  a.split{$0==";"}.map(String.init)[0]
+            
+//            self.setupSessionManager(csrfToken)
+        }
+    }
+    
+    func setupSessionManager(_ csrfToken: String) {
+        var defaultHeaders = Alamofire.SessionManager.defaultHTTPHeaders
+        defaultHeaders["X-CSRF-TOKEN"] = csrfToken
+        print(csrfToken)
+        
+        let configuration = URLSessionConfiguration.default
+        configuration.httpAdditionalHeaders = defaultHeaders
+        
+        let sessionManager = Alamofire.SessionManager(configuration: configuration)
+        
+        setiCloudIDSetting() // calls loginAPI() which needs this header to be set
+    }
 }
 

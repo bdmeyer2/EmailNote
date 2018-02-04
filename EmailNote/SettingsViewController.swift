@@ -14,7 +14,9 @@ class SettingsViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        if let email = Settings.email {
+            emailField.text = email
+        }
         // Do any additional setup after loading the view.
     }
 
@@ -23,13 +25,12 @@ class SettingsViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
-
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-//         Get the new view controller using segue.destinationViewController.
-//         Pass the selected object to the new view controller.
+    @IBAction func saveButtonPressed(_ sender: Any) {
+        Settings.email = emailField.text;
+        
+        let defaults = UserDefaults.standard
+        defaults.set(Settings.email, forKey: "email")
+        
+        self.navigationController?.popViewController(animated: true)
     }
-
 }
