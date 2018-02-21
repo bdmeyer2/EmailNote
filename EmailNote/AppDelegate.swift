@@ -21,6 +21,7 @@ struct Settings {
     static var isFahrenheit: Bool?
 }
 let loginNotification = "brettdmeyer.login"
+var sessionManager: SessionManager?
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -34,9 +35,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Override point for customization after application launch.
         UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
 
-        setiCloudIDSetting()
+//        setiCloudIDSetting()
         setDateSettings()
         loadArchive()
+        getCSRFToken()
 
         let defaults = UserDefaults.standard
         Settings.email = defaults.object(forKey: "email") as? String ?? nil
@@ -133,9 +135,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 "iCloudToken": Settings.iCloudID!,
                 "password": savedString
             ]
-            print(parameters)
             
-            Alamofire.request("https://sendnote.brettdmeyer.com/login", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request("https://sendnote.brettdmeyer.com/login", method: .post, parameters: parameters).responseJSON { response in
                 DispatchQueue.main.async {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                 }
@@ -153,7 +154,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 "iCloudToken": Settings.iCloudID!
             ]
             
-            Alamofire.request("https://sendnote.brettdmeyer.com/register", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request("https://sendnote.brettdmeyer.com/register", method: .post, parameters: parameters).responseJSON { response in
                 DispatchQueue.main.async {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                 }
@@ -171,26 +172,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func getCSRFToken() {
-        Alamofire.request("https://sendnote.brettdmeyer.com/", method: .get).responseJSON { response in
-            let headers = "\(String(describing: response.response!))".split{$0 == ":"}.map(String.init)[6]
-            let a = headers.split{$0=="="}.map(String.init)[3]
-            let csrfToken =  a.split{$0==";"}.map(String.init)[0]
-            
-//            self.setupSessionManager(csrfToken)
+        Alamofire.request("https://sendnote.brettdmeyer.com/csrf", method: .get).responseJSON { response in
+            if let json = response.result.value {
+                print("JSON: \(json)") // serialized json response
+                self.setupSessionManager("\(json)")
+            }
         }
     }
     
     func setupSessionManager(_ csrfToken: String) {
         var defaultHeaders = Alamofire.SessionManager.defaultHTTPHeaders
         defaultHeaders["X-CSRF-TOKEN"] = csrfToken
-        print(csrfToken)
         
         let configuration = URLSessionConfiguration.default
         configuration.httpAdditionalHeaders = defaultHeaders
         
-        let sessionManager = Alamofire.SessionManager(configuration: configuration)
+        sessionManager = Alamofire.SessionManager(configuration: configuration)
         
         setiCloudIDSetting() // calls loginAPI() which needs this header to be set
     }
 }
-

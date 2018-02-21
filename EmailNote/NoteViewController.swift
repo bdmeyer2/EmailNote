@@ -77,7 +77,7 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             ]
             leftBarButton.title = "Message Sending"
             
-            Alamofire.request("https://sendnote.brettdmeyer.com/notes", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request("https://sendnote.brettdmeyer.com/notes", method: .post, parameters: parameters).responseJSON { response in
                 
                 self.leftBarButton.title = "Message Sent"
                 self.note.text = ""
@@ -87,17 +87,6 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
                 DispatchQueue.main.asyncAfter(deadline: when) {
                     self.leftBarButton.title = "Logo Here"
                 }
-//                print("Request: \(String(describing: response.request))")   // original url request
-//                print("Response: \(String(describing: response.response))") // http url response
-//                print("Result: \(response.result)")                         // response serialization result
-//
-//                if let json = response.result.value {
-//                    print("JSON: \(json)") // serialized json response
-//                }
-//
-//                if let data = response.data, let utf8Text = String(data: data, encoding: .utf8) {
-//                    print("Data: \(utf8Text)") // original server data as UTF8 string
-//                }
             }
         } else {
             print("userID is nil, make sure signed into icloud account");
@@ -112,28 +101,7 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             sendEmailInBackground()
         }
     }
-    
-//    func textViewDidBeginEditing(_ textView: UITextView) {
-//        textView.selectAll(nil)
-//        UIView.animate(withDuration: 1) {
-////            self.sendButton.heightConstraint.constant = 308
-//            self.sendButton.translatesAutoresizingMaskIntoConstraints = false
-//            NSLayoutConstraint.activate([
-//                self.sendButton.bottomAnchor.constraint(equalTo: self.view.bottomAnchor, constant: 390)
-//                ])
-//            self.view.layoutIfNeeded()
-//        }
-//    }
-    
-    
-    
-//    @IBAction func addImagePressed(_ sender: Any) {
-//        let animator = UIViewPropertyAnimator(duration: 0.15, dampingRatio: 1) {
-//            let radians = CGFloat(Int(-45)) * .pi / 180
-//            self.addImageButton.transform = self.addImageButton.transform.rotated(by: CGFloat(radians))
-//        }
-//        animator.startAnimation()
-//    }
+
     
     func getTime() -> String {
         let formatter = DateFormatter()
@@ -172,7 +140,7 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             ]
             UIApplication.shared.isNetworkActivityIndicatorVisible = true
 
-            Alamofire.request("https://sendnote.brettdmeyer.com/weather", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request("https://sendnote.brettdmeyer.com/weather", method: .post, parameters: parameters).responseJSON { response in
                 if response.result.isSuccess {
                     print("Success getting web data")
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
