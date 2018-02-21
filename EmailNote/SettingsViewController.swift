@@ -11,11 +11,16 @@ import UIKit
 class SettingsViewController: UIViewController {
 
     @IBOutlet weak var emailField: UITextField!
+    @IBOutlet weak var fahrenheitSwitch: UISwitch!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
         if let email = Settings.email {
             emailField.text = email
+        }
+        if let isFahrenheit = Settings.isFahrenheit {
+            fahrenheitSwitch.isOn = isFahrenheit
         }
         // Do any additional setup after loading the view.
     }
@@ -25,12 +30,28 @@ class SettingsViewController: UIViewController {
         // Dispose of any resources that can be recreated.
     }
     
+    func handleViewTransition() {
+        navigationController?.navigationBar.barTintColor = UIColor.white
+        navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.black]
+        navigationController?.navigationBar.tintColor = UIColor.black
+        UIApplication.shared.statusBarStyle = UIStatusBarStyle.default
+        
+        self.navigationController?.popViewController(animated: true)
+    }
+    
     @IBAction func saveButtonPressed(_ sender: Any) {
         Settings.email = emailField.text;
+        Settings.isFahrenheit = fahrenheitSwitch.isOn
         
         let defaults = UserDefaults.standard
         defaults.set(Settings.email, forKey: "email")
+        defaults.set(Settings.isFahrenheit, forKey: "isFahrenheight")
         
-        self.navigationController?.popViewController(animated: true)
+        handleViewTransition()
+    }
+    
+    
+    @IBAction func backButtonPressed(_ sender: Any) {
+        handleViewTransition()
     }
 }

@@ -18,8 +18,9 @@ struct Settings {
     static var toggleFahrenheit: Bool?
     static var archive: [Note]?
     static var weather: WeatherDataModel?
-    static var HTTP_HEADERS: HTTPHeaders = [:]
+    static var isFahrenheit: Bool?
 }
+let loginNotification = "brettdmeyer.login"
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -32,13 +33,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
-        getCSRFToken()
+
         setiCloudIDSetting()
         setDateSettings()
         loadArchive()
 
         let defaults = UserDefaults.standard
         Settings.email = defaults.object(forKey: "email") as? String ?? nil
+        Settings.isFahrenheit = defaults.object(forKey: "isFahrenheight") as? Bool ?? true
         
         return true
     }
@@ -80,6 +82,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func setiCloudIDSetting() {
+        UIApplication.shared.isNetworkActivityIndicatorVisible = true
         iCloudUserIDAsync() {
             recordID, error in
             if let userID = recordID?.recordName {
@@ -125,29 +128,50 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func loginAPI() {
-        
         if let savedString = iCloudKeyStore?.string(forKey: "token") {
-            print(savedString)
+            let parameters: Parameters = [
+                "iCloudToken": Settings.iCloudID!,
+                "password": savedString
+            ]
+            print(parameters)
+            
+            Alamofire.request("https://sendnote.brettdmeyer.com/login", method: .post, parameters: parameters).responseJSON { response in
+                DispatchQueue.main.async {
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                }
+
+                if response.result.isSuccess {
+//                    let json : JSON = JSON(response.result.value!)
+                    print("LOGIN SUCCESSFUL")
+                    NotificationCenter.default.post(name: Notification.Name(rawValue: loginNotification), object: self)
+                } else {
+                    print("Error: \(String(describing: response.result.error))")
+                }
+            }
         } else {
             let parameters: Parameters = [
                 "iCloudToken": Settings.iCloudID!
             ]
             
-            Alamofire.request("http://emailnote.test/api/register", method: .post, parameters: parameters).responseJSON { response in
+            Alamofire.request("https://sendnote.brettdmeyer.com/register", method: .post, parameters: parameters).responseJSON { response in
+                DispatchQueue.main.async {
+                    UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                }
                 if response.result.isSuccess {
                     let json : JSON = JSON(response.result.value!)
-                    print(json["token"])
+                    print("Registration successful \(json["token"])")
                     self.iCloudKeyStore?.set(json["token"].string, forKey: "token")
                     self.iCloudKeyStore?.synchronize()
+                    NotificationCenter.default.post(name: Notification.Name(rawValue: loginNotification), object: self)
                 } else {
-                    print("Error: \(response.result.error)")
+                    print("Error: \(String(describing: response.result.error))")
                 }
             }
         }
     }
     
     func getCSRFToken() {
-        Alamofire.request("http://emailnote.test/", method: .get).responseJSON { response in
+        Alamofire.request("https://sendnote.brettdmeyer.com/", method: .get).responseJSON { response in
             let headers = "\(String(describing: response.response!))".split{$0 == ":"}.map(String.init)[6]
             let a = headers.split{$0=="="}.map(String.init)[3]
             let csrfToken =  a.split{$0==";"}.map(String.init)[0]
