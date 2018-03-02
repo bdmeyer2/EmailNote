@@ -67,7 +67,6 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
 
         if let iCloudID = Settings.iCloudID {
             let parameters: Parameters = [
-                "iCloudID": iCloudID,
                 "message": n.message!,
                 "time": n.time!,
                 "weather": n.weather!,
@@ -77,8 +76,18 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             ]
             leftBarButton.title = "Message Sending"
             
-            sessionManager!.request("https://sendnote.brettdmeyer.com/notes", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request(requestURL! + "/notes", method: .post, parameters: parameters).responseJSON { response in
+                print("Request: \(String(describing: response.request))")   // original url request
+                print("Response: \(String(describing: response.response))") // http url response
+                print("Result: \(response.result)")                         // response serialization result
                 
+                if let json = response.result.value {
+                    print("JSON: \(json)") // serialized json response
+                }
+                
+                if let data = response.data, let utf8Text = String(data: data, encoding: .utf8) {
+                    print("Data: \(utf8Text)") // original server data as UTF8 string
+                }
                 self.leftBarButton.title = "Message Sent"
                 self.note.text = ""
                 UIApplication.shared.isNetworkActivityIndicatorVisible = false
@@ -140,7 +149,18 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             ]
             UIApplication.shared.isNetworkActivityIndicatorVisible = true
 
-            sessionManager!.request("https://sendnote.brettdmeyer.com/weather", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request(requestURL! + "/weather", method: .post, parameters: parameters).responseJSON { response in
+                print("Request: \(String(describing: response.request))")   // original url request
+                print("Response: \(String(describing: response.response))") // http url response
+                print("Result: \(response.result)")                         // response serialization result
+                
+                if let json = response.result.value {
+                    print("JSON: \(json)") // serialized json response
+                }
+                
+                if let data = response.data, let utf8Text = String(data: data, encoding: .utf8) {
+                    print("Data: \(utf8Text)") // original server data as UTF8 string
+                }
                 if response.result.isSuccess {
                     print("Success getting web data")
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false

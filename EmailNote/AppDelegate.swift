@@ -15,13 +15,13 @@ struct Settings {
     static var iCloudID: String?
     static var email: String?
     static var date: String?
-    static var toggleFahrenheit: Bool?
     static var archive: [Note]?
     static var weather: WeatherDataModel?
     static var isFahrenheit: Bool?
 }
 let loginNotification = "brettdmeyer.login"
 var sessionManager: SessionManager?
+var requestURL: String?
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -34,8 +34,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
-
-//        setiCloudIDSetting()
+        
+        setEnvironment(isProduction: true)
+        
         setDateSettings()
         loadArchive()
         getCSRFToken()
@@ -131,18 +132,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func loginAPI() {
         if let savedString = iCloudKeyStore?.string(forKey: "token") {
+            print(savedString)
             let parameters: Parameters = [
                 "iCloudToken": Settings.iCloudID!,
                 "password": savedString
             ]
+            print(parameters)
             
-            sessionManager!.request("https://sendnote.brettdmeyer.com/login", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request(requestURL! + "/login", method: .post, parameters: parameters).responseJSON { response in
                 DispatchQueue.main.async {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                 }
 
                 if response.result.isSuccess {
-//                    let json : JSON = JSON(response.result.value!)
+                    // let json : JSON = JSON(response.result.value!)
                     print("LOGIN SUCCESSFUL")
                     NotificationCenter.default.post(name: Notification.Name(rawValue: loginNotification), object: self)
                 } else {
@@ -154,7 +157,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 "iCloudToken": Settings.iCloudID!
             ]
             
-            sessionManager!.request("https://sendnote.brettdmeyer.com/register", method: .post, parameters: parameters).responseJSON { response in
+            sessionManager!.request(requestURL! + "/register", method: .post, parameters: parameters).responseJSON { response in
                 DispatchQueue.main.async {
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
                 }
@@ -172,7 +175,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func getCSRFToken() {
-        Alamofire.request("https://sendnote.brettdmeyer.com/csrf", method: .get).responseJSON { response in
+        Alamofire.request(requestURL! + "/csrf", method: .get).responseJSON { response in
             if let json = response.result.value {
                 print("JSON: \(json)") // serialized json response
                 self.setupSessionManager("\(json)")
@@ -190,5 +193,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         sessionManager = Alamofire.SessionManager(configuration: configuration)
         
         setiCloudIDSetting() // calls loginAPI() which needs this header to be set
+    }
+    
+    func setEnvironment(isProduction: Bool) {
+        if isProduction {
+            requestURL = "https://sendnote.brettdmeyer.com"
+        } else { // Local
+            requestURL = "http://emailnote.test"
+        }
     }
 }
