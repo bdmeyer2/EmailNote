@@ -16,10 +16,24 @@
 		741B75A61FF800860047992C /* TableViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 741B75A51FF800860047992C /* TableViewController.swift */; };
 		741B75A81FF80ADD0047992C /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 741B75A71FF80ADD0047992C /* CFNetwork.framework */; };
 		741B76031FF81A100047992C /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 741B76021FF81A100047992C /* SettingsViewController.swift */; };
+		743505EC204FA71B00391E4F /* Alamofire.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 743505ED204FA71B00391E4F /* Alamofire.framework */; };
 		7496B1CF201CF89A00C194A6 /* CloudKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7496B1CE201CF89A00C194A6 /* CloudKit.framework */; };
 		74A0C66E201E4531005E4B34 /* Note.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74A0C66D201E4531005E4B34 /* Note.swift */; };
 		A811AC8C23A34B21021A380D /* Pods_EmailNote.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 4489833CCAB389C47C450D5A /* Pods_EmailNote.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		743505F1204FA76D00391E4F /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		4489833CCAB389C47C450D5A /* Pods_EmailNote.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_EmailNote.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -35,6 +49,7 @@
 		741B75A51FF800860047992C /* TableViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableViewController.swift; sourceTree = "<group>"; };
 		741B75A71FF80ADD0047992C /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
 		741B76021FF81A100047992C /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		743505ED204FA71B00391E4F /* Alamofire.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = Alamofire.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		7496B1CD201CF70800C194A6 /* EmailNote.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = EmailNote.entitlements; sourceTree = "<group>"; };
 		7496B1CE201CF89A00C194A6 /* CloudKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CloudKit.framework; path = System/Library/Frameworks/CloudKit.framework; sourceTree = SDKROOT; };
 		74A0C66D201E4531005E4B34 /* Note.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Note.swift; sourceTree = "<group>"; };
@@ -46,6 +61,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				743505EC204FA71B00391E4F /* Alamofire.framework in Frameworks */,
 				7496B1CF201CF89A00C194A6 /* CloudKit.framework in Frameworks */,
 				741B75A81FF80ADD0047992C /* CFNetwork.framework in Frameworks */,
 				A811AC8C23A34B21021A380D /* Pods_EmailNote.framework in Frameworks */,
@@ -103,6 +119,7 @@
 		C9194A7035D608773D8982F0 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				743505ED204FA71B00391E4F /* Alamofire.framework */,
 				7496B1CE201CF89A00C194A6 /* CloudKit.framework */,
 				741B75A71FF80ADD0047992C /* CFNetwork.framework */,
 				4489833CCAB389C47C450D5A /* Pods_EmailNote.framework */,
@@ -123,6 +140,7 @@
 				741B758D1FF5E3DA0047992C /* Resources */,
 				8F60155C4C63CEEB333A1449 /* [CP] Embed Pods Frameworks */,
 				983CA18C3A3AE68BAF898291 /* [CP] Copy Pods Resources */,
+				743505F1204FA76D00391E4F /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -191,7 +209,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		4CF3826C5DEC79F3F3158DD8 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			files = (
 			);
 			inputPaths = (
@@ -209,18 +227,20 @@
 		};
 		8F60155C4C63CEEB333A1449 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			files = (
 			);
 			inputPaths = (
 				"${SRCROOT}/Pods/Target Support Files/Pods-EmailNote/Pods-EmailNote-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/Alamofire/Alamofire.framework",
 				"${BUILT_PRODUCTS_DIR}/SwiftyJSON/SwiftyJSON.framework",
+				"${BUILT_PRODUCTS_DIR}/pop/pop.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/Alamofire.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/SwiftyJSON.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/pop.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -229,7 +249,7 @@
 		};
 		983CA18C3A3AE68BAF898291 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			files = (
 			);
 			inputPaths = (

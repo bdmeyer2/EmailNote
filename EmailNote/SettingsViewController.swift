@@ -31,10 +31,10 @@ class SettingsViewController: UIViewController {
     }
     
     func handleViewTransition() {
-        navigationController?.navigationBar.barTintColor = UIColor.white
-        navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.black]
-        navigationController?.navigationBar.tintColor = UIColor.black
-        UIApplication.shared.statusBarStyle = UIStatusBarStyle.default
+//        navigationController?.navigationBar.barTintColor = UIColor.white
+//        navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.black]
+//        navigationController?.navigationBar.tintColor = UIColor.black
+//        UIApplication.shared.statusBarStyle = UIStatusBarStyle.default
         
         self.navigationController?.popViewController(animated: true)
     }

@@ -8,10 +8,10 @@
 
 import UIKit
 
-class ArchiveTableViewCell: UITableViewCell {
-    @IBOutlet weak var noteLabel: UILabel!
-    @IBOutlet weak var subLabel: UILabel!
-}
+//class ArchiveTableViewCell: UITableViewCell {
+//    @IBOutlet weak var noteLabel: UILabel!
+//    @IBOutlet weak var subLabel: UILabel!
+//}
 
 class TableViewController: UITableViewController {
     @IBOutlet weak var settingsButton: UIBarButtonItem!
@@ -22,11 +22,12 @@ class TableViewController: UITableViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        settingsButton.tintColor = UIColor.black
-        navigationController?.navigationBar.barTintColor = UIColor.white
-        navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.black]
-        navigationController?.navigationBar.tintColor = UIColor.black
-        UIApplication.shared.statusBarStyle = UIStatusBarStyle.default
+
+//        settingsButton.tintColor = UIColor.black
+//        navigationController?.navigationBar.barTintColor = UIColor.white
+//        navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.black]
+//        navigationController?.navigationBar.tintColor = UIColor.black
+//        UIApplication.shared.statusBarStyle = UIStatusBarStyle.default
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -57,6 +58,8 @@ class TableViewController: UITableViewController {
 
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        self.tableView.register(ArchiveTableViewCell.self, forCellReuseIdentifier: "noteCell")
+
         let cell = tableView.dequeueReusableCell(withIdentifier: "noteCell", for: indexPath) as! ArchiveTableViewCell
         
         if let noteArray = Settings.archive {
@@ -118,9 +121,9 @@ class TableViewController: UITableViewController {
     }
     
     func handleViewTransition() {
-        self.navigationController?.navigationBar.barTintColor = UIColor.black
-        self.navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.white]
-        self.navigationController?.navigationBar.tintColor = UIColor.white
-        UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
+//        self.navigationController?.navigationBar.barTintColor = UIColor.black
+//        self.navigationController?.navigationBar.titleTextAttributes = [NSAttributedStringKey.foregroundColor: UIColor.white]
+//        self.navigationController?.navigationBar.tintColor = UIColor.white
+//        UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
     }
 }

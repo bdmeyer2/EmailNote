@@ -11,32 +11,57 @@ import CoreGraphics
 import Alamofire
 import CloudKit
 import SwiftyJSON
+import pop
 
-class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManagerDelegate {
+class ArchiveTableViewCell: UITableViewCell {
+    @IBOutlet weak var noteLabel: UILabel!
+    @IBOutlet weak var subLabel: UILabel!
+}
+
+class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManagerDelegate, UITableViewDataSource {
 
     @IBOutlet weak var note: UITextView!
     @IBOutlet weak var sendButton: UIButton!
-    @IBOutlet weak var dateButton: UIBarButtonItem!
-    @IBOutlet weak var weatherIconButton: UIBarButtonItem!
-    @IBOutlet weak var temperatureButton: UIBarButtonItem!
-    @IBOutlet weak var leftBarButton: UIBarButtonItem!
+    @IBOutlet weak var logo: UIButton!
+    @IBOutlet weak var temperatureLabel: UILabel!
+    @IBOutlet weak var weatherIcon: UIImageView!
+    @IBOutlet weak var dateLabel: UILabel!
+    @IBOutlet weak var topView: UIView!
+    @IBOutlet weak var settingsButton: UIButton!
+    
+    @IBOutlet weak var noteView: UIView!
+    @IBOutlet weak var archiveTableView: UITableView!
+    
     @IBOutlet weak var sendButtonBottomConstraint: NSLayoutConstraint!
+    @IBOutlet weak var mainViewTopConstraint: NSLayoutConstraint!
+    @IBOutlet weak var noteTopConstraint: NSLayoutConstraint!
+    @IBOutlet weak var noteBottomConstraint: NSLayoutConstraint!
     
     var locationManager: CLLocationManager?
     var latitude: String?
     var longitude: String?
+    var sendButtonBotConstraintStart: CGFloat?
+    
+    var panGR: UIPanGestureRecognizer!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        archiveTableView.dataSource = self
+        note.isUserInteractionEnabled = true
         NotificationCenter.default.addObserver(self, selector: #selector(NoteViewController.initLocationManager), name: NSNotification.Name(rawValue: loginNotification), object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(keyboardWillShow), name: NSNotification.Name.UIKeyboardWillShow, object: nil)
         
-        leftBarButton.title = "Logo Here"
+        panGR = UIPanGestureRecognizer(target: self,
+                                       action: #selector(handlePan(gestureRecognizer:)))
+        self.view.addGestureRecognizer(panGR)
         
+        logo.setTitle("Yoroshiku.",for: .normal)
         self.note.delegate = self
         note.text = ""
-        temperatureButton.title = ""
+        temperatureLabel.text = ""
         note.becomeFirstResponder()
+        settingsButton.alpha = 0
+        archiveTableView.alpha = 0
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -45,8 +70,8 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
     }
     
     override func viewWillDisappear(_ animated: Bool) {
-        leftBarButton.isEnabled = false
-        leftBarButton.isEnabled = true
+        logo.isEnabled = false
+        logo.isEnabled = true
     }
 
     override func didReceiveMemoryWarning() {
@@ -61,11 +86,11 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
         let n = Note()
         n.message = note.text
         n.time = getTime()
-        n.weather = temperatureButton.title
+        n.weather = temperatureLabel.text
         Settings.archive?.append(n)
         UIApplication.shared.isNetworkActivityIndicatorVisible = true
 
-        if let iCloudID = Settings.iCloudID {
+        if Settings.iCloudID != nil {
             let parameters: Parameters = [
                 "message": n.message!,
                 "time": n.time!,
@@ -74,27 +99,18 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
                 "long": longitude!,
                 "email": Settings.email! // Can't get here without having an email set
             ]
-            leftBarButton.title = "Message Sending"
+            logo.setTitle("Sending your message!",for: .normal)
+
             
             sessionManager!.request(requestURL! + "/notes", method: .post, parameters: parameters).responseJSON { response in
-                print("Request: \(String(describing: response.request))")   // original url request
-                print("Response: \(String(describing: response.response))") // http url response
-                print("Result: \(response.result)")                         // response serialization result
-                
-                if let json = response.result.value {
-                    print("JSON: \(json)") // serialized json response
-                }
-                
-                if let data = response.data, let utf8Text = String(data: data, encoding: .utf8) {
-                    print("Data: \(utf8Text)") // original server data as UTF8 string
-                }
-                self.leftBarButton.title = "Message Sent"
+                self.logo.setTitle("Sent!",for: .normal)
                 self.note.text = ""
                 UIApplication.shared.isNetworkActivityIndicatorVisible = false
+                self.archiveTableView.reloadData()
 
                 let when = DispatchTime.now() + 1 // change 2 to desired number of seconds
                 DispatchQueue.main.asyncAfter(deadline: when) {
-                    self.leftBarButton.title = "Logo Here"
+                    self.logo.setTitle("Yoroshiku.",for: .normal)
                 }
             }
         } else {
@@ -128,14 +144,14 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
     
     func setRightButtonArray() {
         if let date = Settings.date {
-            dateButton.title? = "\(date)"
+            dateLabel.text = "\(date)"
         }
         if var weather = Settings.weather?.temperature {
             if Settings.isFahrenheit! {
                 weather = (weather * 9/5) + 32
-                temperatureButton.title? = "\(weather)℉"
+                temperatureLabel.text = "\(weather)℉"
             } else {
-                temperatureButton.title? = "\(weather)℃"
+                temperatureLabel.text = "\(weather)℃"
             }
         }
     }
@@ -150,17 +166,6 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             UIApplication.shared.isNetworkActivityIndicatorVisible = true
 
             sessionManager!.request(requestURL! + "/weather", method: .post, parameters: parameters).responseJSON { response in
-                print("Request: \(String(describing: response.request))")   // original url request
-                print("Response: \(String(describing: response.response))") // http url response
-                print("Result: \(response.result)")                         // response serialization result
-                
-                if let json = response.result.value {
-                    print("JSON: \(json)") // serialized json response
-                }
-                
-                if let data = response.data, let utf8Text = String(data: data, encoding: .utf8) {
-                    print("Data: \(utf8Text)") // original server data as UTF8 string
-                }
                 if response.result.isSuccess {
                     print("Success getting web data")
                     UIApplication.shared.isNetworkActivityIndicatorVisible = false
@@ -214,13 +219,192 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
         return
     }
     
+    @IBAction func logoPressed(_ sender: Any) {
+//        if let anim = POPSpringAnimation(propertyNamed: kPOPLayerBounds) {
+//            let window = UIApplication.shared.keyWindow
+//            let topPadding = window?.safeAreaInsets.top
+//            print(archiveTableView.frame.height)
+//            print(topPadding! + topView.frame.height)
+//            anim.toValue = NSValue(cgRect: CGRect(x: 0, y: topPadding! + topView.frame.height, width: noteView.frame.width, height: archiveTableView.frame.height))
+//            noteView.pop_add(anim, forKey: "size")
+//        }
+        self.view.layoutIfNeeded()
+        self.mainViewTopConstraint.constant = 0
+        UIView.animate(withDuration: 0.33, animations: { () -> Void in
+            self.view.layoutIfNeeded()
+            self.note.becomeFirstResponder()
+            self.weatherIcon.alpha = 1
+            self.dateLabel.alpha = 1
+            self.temperatureLabel.alpha = 1
+            self.settingsButton.alpha = 0
+            self.archiveTableView.alpha = 0
+        }) { (Finished) -> Void in
+            //            self.source.present(self.destination , animated: false, completion: nil)
+        }
+    }
+    
     @objc func keyboardWillShow(_ notification: Notification) {
         if let keyboardFrame: NSValue = notification.userInfo?[UIKeyboardFrameEndUserInfoKey] as? NSValue {
             let keyboardRectangle = keyboardFrame.cgRectValue
             let keyboardHeight = keyboardRectangle.height
-            self.sendButtonBottomConstraint.constant = keyboardHeight - view.safeAreaInsets.bottom + 10
+            self.sendButtonBottomConstraint.constant = keyboardHeight + 12
+            self.noteBottomConstraint.constant = keyboardHeight + 50
+            sendButtonBotConstraintStart = self.sendButtonBottomConstraint.constant
+            UIView.animate(withDuration: 0.33, animations: { () -> Void in
+                self.view.layoutIfNeeded()
+            })
         }
     }
+    
+    @objc func handlePan(gestureRecognizer:UIPanGestureRecognizer) {
+        let translation = panGR.translation(in: nil)
+        let progress = translation.y / 2 / view.bounds.height
+        switch panGR.state {
+        case .began:
+            var x = 0
+            
+        case .changed:
+            // calculate the progress based on how far the user moved
+            let translation = panGR.translation(in: nil)
+            let progress = translation.y / 2 / view.bounds.height
+            if translation.y > 0 {
+                mainViewTopConstraint.constant =  translation.y
+                weatherIcon.alpha = (300 - translation.y) / 300
+                dateLabel.alpha = (300 - translation.y) / 300
+                temperatureLabel.alpha = (300 - translation.y) / 300
+                archiveTableView.alpha = 1 - ((archiveTableView.frame.height - translation.y) / archiveTableView.frame.height)
+                note.resignFirstResponder()
+                sendButtonBottomConstraint.constant = sendButtonBotConstraintStart! - (translation.y)
+                view.layoutIfNeeded()
+            }
+            
+        default:
+            // end the transition when user ended their touch
+//            print(translation.y)
+//            print(mainViewTopConstraint.constant)
+//            if let anim = POPSpringAnimation(propertyNamed: kPOPLayerBounds) {
+//                let window = UIApplication.shared.keyWindow
+//                let topPadding = window?.safeAreaInsets.top
+//                anim.toValue = NSValue(cgRect: CGRect(x: 0, y: 0, width: noteView.frame.width, height: topPadding! + topView.frame.height))
+//                noteView.pop_add(anim, forKey: "size")
+//            }
+            if progress + panGR.velocity(in: nil).y / view.bounds.height > 0.3 {
+                mainViewTopConstraint.constant =  archiveTableView.frame.height
+                sendButtonBottomConstraint.constant = -100
+                UIView.animate(withDuration: 0.33, animations: { () -> Void in
+                    self.view.layoutIfNeeded()
+                    self.weatherIcon.alpha = 0
+                    self.dateLabel.alpha = 0
+                    self.temperatureLabel.alpha = 0
+                    self.settingsButton.alpha = 1
+                    self.archiveTableView.alpha = 1
+                }) { (Finished) -> Void in
+                }
+            } else if mainViewTopConstraint.constant < archiveTableView.frame.height {
+                print("else if")
+                mainViewTopConstraint.constant =  0
+                note.becomeFirstResponder()
+                UIView.animate(withDuration: 0.33, animations: { () -> Void in
+                    self.weatherIcon.alpha = 1
+                    self.dateLabel.alpha = 1
+                    self.temperatureLabel.alpha = 1
+                    self.archiveTableView.alpha = 0
+                }) { (Finished) -> Void in
+                }
+            }
+//            print(mainViewTopConstraint.constant)
 
+        }
+    }
+    
+    func numberOfSections(in tableView: UITableView) -> Int {
+        return 1
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        var count: Int
+        if let notes = Settings.archive {
+            count = notes.count
+        } else {
+            count = 0
+        }
+        return count
+    }
+    
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let cell = tableView.dequeueReusableCell(withIdentifier: "noteCell", for: indexPath) as! ArchiveTableViewCell
+        
+        if let noteArray = Settings.archive {
+            let count = noteArray.count
+            cell.noteLabel?.text = noteArray[count - 1 - indexPath.row].message
+            cell.subLabel?.text = noteArray[count - 1 - indexPath.row].time
+        }
+        
+        return cell
+    }
+    
 }
 
+//class FadeSegue: UIStoryboardSegue {
+//
+//    override func perform() {
+////        // Get the view of the source
+////        let sourceViewControllerView = self.source.view
+////        // Get the view of the destination
+////        let destinationViewControllerView = self.destination.view
+////
+////        let screenWidth = UIScreen.main.bounds.size.width
+////        let screenHeight = UIScreen.main.bounds.size.height
+////
+////        // Make the destination view the size of the screen
+////        destinationViewControllerView?.frame = CGRect(x: 0, y: 0, width: screenWidth, height: screenHeight)
+////
+////        // Insert destination below the source
+////        // Without this line the animation works but the transition is not smooth as it jumps from white to the new view controller
+////        destinationViewControllerView?.alpha = 0;
+////        sourceViewControllerView?.addSubview(destinationViewControllerView!);
+////
+////        // Animate the fade, remove the destination view on completion and present the full view controller
+////        UIView.animate(withDuration: 0.33, animations: {
+////            destinationViewControllerView?.alpha = 1;
+////        }, completion: { (finished) in
+//////            destinationViewControllerView?.removeFromSuperview()
+////            //            self.source.present(self.destination, animated: false, completion: nil)
+////            if let navigationController = self.source.navigationController {
+////            navigationController.pushViewController(self.destination, animated: false)
+////        }
+////        })
+//
+//        let firstVCView = self.source.view as UIView!
+//        let secondVCView = self.destination.view as UIView!
+//        let navHeight = self.source.navigationController?.navigationBar.frame.height
+//
+//
+//        // Get the screen width and height.
+//        let screenWidth = UIScreen.main.bounds.size.width
+//        let screenHeight = UIScreen.main.bounds.size.height - navHeight!
+//
+//        // Specify the initial position of the destination view.
+//        secondVCView?.frame = CGRect(origin: CGPoint(x:0.0, y:screenHeight), size: CGSize(width:screenWidth, height:screenHeight))
+//
+//        // Access the app's key window and insert the destination view above the current (source) one.
+//        let window = UIApplication.shared.keyWindow
+////        window?.insertSubview(secondVCView!, aboveSubview: firstVCView!)
+//        window?.insertSubview(secondVCView!, at: Int(screenHeight))
+//
+//        // Animate the transition.
+//        UIView.animate(withDuration: 0.7, animations: { () -> Void in
+//            secondVCView?.frame = (secondVCView?.frame.offsetBy(dx:0.0, dy:0.0))!
+//            firstVCView?.frame = (firstVCView?.frame.offsetBy(dx:0.0, dy:screenHeight))!
+//            if let navigationController = self.source.navigationController {
+//                navigationController.pushViewController(self.destination, animated: false)
+//            }
+//        }) { (Finished) -> Void in
+////            self.source.present(self.destination , animated: false, completion: nil)
+//        }
+//    }
+//}
+//
+//

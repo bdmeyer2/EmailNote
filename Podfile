@@ -8,4 +8,5 @@ target 'EmailNote' do
   # Pods for EmailNote
   pod 'Alamofire'
   pod 'SwiftyJSON'
+  pod 'pop'
 end

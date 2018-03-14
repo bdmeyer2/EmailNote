@@ -33,9 +33,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
-        UIApplication.shared.statusBarStyle = UIStatusBarStyle.lightContent
         
-        setEnvironment(isProduction: true)
+        setEnvironment("prod")
         
         setDateSettings()
         loadArchive()
@@ -195,9 +194,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         setiCloudIDSetting() // calls loginAPI() which needs this header to be set
     }
     
-    func setEnvironment(isProduction: Bool) {
-        if isProduction {
+    func setEnvironment(_ environment: String) {
+        if environment == "prod" {
             requestURL = "https://sendnote.brettdmeyer.com"
+        } else if environment == "stage" {
+            requestURL = "http://stage.brettdmeyer.com"
         } else { // Local
             requestURL = "http://emailnote.test"
         }
