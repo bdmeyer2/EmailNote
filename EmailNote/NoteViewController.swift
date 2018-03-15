@@ -11,7 +11,6 @@ import CoreGraphics
 import Alamofire
 import CloudKit
 import SwiftyJSON
-import pop
 
 class ArchiveTableViewCell: UITableViewCell {
     @IBOutlet weak var noteLabel: UILabel!
@@ -220,27 +219,44 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
     }
     
     @IBAction func logoPressed(_ sender: Any) {
-//        if let anim = POPSpringAnimation(propertyNamed: kPOPLayerBounds) {
-//            let window = UIApplication.shared.keyWindow
-//            let topPadding = window?.safeAreaInsets.top
-//            print(archiveTableView.frame.height)
-//            print(topPadding! + topView.frame.height)
-//            anim.toValue = NSValue(cgRect: CGRect(x: 0, y: topPadding! + topView.frame.height, width: noteView.frame.width, height: archiveTableView.frame.height))
-//            noteView.pop_add(anim, forKey: "size")
-//        }
-        self.view.layoutIfNeeded()
-        self.mainViewTopConstraint.constant = 0
-        UIView.animate(withDuration: 0.33, animations: { () -> Void in
-            self.view.layoutIfNeeded()
-            self.note.becomeFirstResponder()
+        let window = UIApplication.shared.keyWindow
+        let topPadding = window?.safeAreaInsets.top
+        
+        let finalX = noteView.frame.origin.x
+        let finalY = topPadding! + topView.frame.height
+        
+        let animationDuration = 1.0
+        let springDampening = CGFloat(1)
+        
+        note.becomeFirstResponder()
+        self.noteView.layoutIfNeeded()
+        UIView.animate(withDuration: animationDuration, delay: 0.0, usingSpringWithDamping: springDampening, initialSpringVelocity: 0.0, options: .curveLinear, animations: {
+            self.noteView.layoutIfNeeded()
+            self.mainViewTopConstraint.constant = 0
+            var frame = self.noteView.frame
+            frame.origin.x = finalX
+            frame.origin.y = CGFloat(finalY)
+            self.noteView.frame = frame
             self.weatherIcon.alpha = 1
             self.dateLabel.alpha = 1
             self.temperatureLabel.alpha = 1
-            self.settingsButton.alpha = 0
             self.archiveTableView.alpha = 0
-        }) { (Finished) -> Void in
-            //            self.source.present(self.destination , animated: false, completion: nil)
+            self.settingsButton.alpha = 0
+        }) { _ in
         }
+//        self.view.layoutIfNeeded()
+//        self.mainViewTopConstraint.constant = 0
+//        UIView.animate(withDuration: 0.33, animations: { () -> Void in
+//            self.view.layoutIfNeeded()
+//            self.note.becomeFirstResponder()
+//            self.weatherIcon.alpha = 1
+//            self.dateLabel.alpha = 1
+//            self.temperatureLabel.alpha = 1
+//            self.settingsButton.alpha = 0
+//            self.archiveTableView.alpha = 0
+//        }) { (Finished) -> Void in
+//            //            self.source.present(self.destination , animated: false, completion: nil)
+//        }
     }
     
     @objc func keyboardWillShow(_ notification: Notification) {
@@ -250,7 +266,7 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
             self.sendButtonBottomConstraint.constant = keyboardHeight + 12
             self.noteBottomConstraint.constant = keyboardHeight + 50
             sendButtonBotConstraintStart = self.sendButtonBottomConstraint.constant
-            UIView.animate(withDuration: 0.33, animations: { () -> Void in
+            UIView.animate(withDuration: 1.0, animations: { () -> Void in
                 self.view.layoutIfNeeded()
             })
         }
@@ -289,6 +305,7 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
 //                noteView.pop_add(anim, forKey: "size")
 //            }
             if progress + panGR.velocity(in: nil).y / view.bounds.height > 0.3 {
+
                 mainViewTopConstraint.constant =  archiveTableView.frame.height
                 sendButtonBottomConstraint.constant = -100
                 UIView.animate(withDuration: 0.33, animations: { () -> Void in
@@ -301,16 +318,51 @@ class NoteViewController: UIViewController, UITextViewDelegate, CLLocationManage
                 }) { (Finished) -> Void in
                 }
             } else if mainViewTopConstraint.constant < archiveTableView.frame.height {
-                print("else if")
-                mainViewTopConstraint.constant =  0
-                note.becomeFirstResponder()
-                UIView.animate(withDuration: 0.33, animations: { () -> Void in
+                let vel = panGR.velocity(in: self.view)
+                let window = UIApplication.shared.keyWindow
+                let topPadding = window?.safeAreaInsets.top
+                
+                let finalX = noteView.frame.origin.x
+                let finalY = topPadding! + topView.frame.height
+                let curY = noteView.frame.origin.y
+                
+                let distance = curY - CGFloat(finalY);
+                let animationDuration = 1.0
+                let springDampening = CGFloat(1)
+                
+                let springVelocity = -1.0 * vel.y / CGFloat(distance)
+                
+                self.noteView.layoutIfNeeded()
+                UIView.animate(withDuration: animationDuration, delay: 0.0, usingSpringWithDamping: springDampening, initialSpringVelocity: springVelocity, options: .curveLinear, animations: {
+                    //                    self.viewToAnimate.alpha = 0
+                    self.noteView.layoutIfNeeded()
+                    self.mainViewTopConstraint.constant = 0
+                    var frame = self.noteView.frame
+                    frame.origin.x = finalX
+                    frame.origin.y = CGFloat(finalY)
+                    self.noteView.frame = frame
                     self.weatherIcon.alpha = 1
                     self.dateLabel.alpha = 1
                     self.temperatureLabel.alpha = 1
                     self.archiveTableView.alpha = 0
-                }) { (Finished) -> Void in
+//                    self.sendButtonBottomConstraint.constant = self.sendButtonBotConstraintStart!
+                    self.note.becomeFirstResponder()
+                }) { _ in
+                    //                    self.viewToAnimate.removeFromSuperview()
                 }
+//                let when = DispatchTime.now() + 1 // change 2 to desired number of seconds
+//                DispatchQueue.main.asyncAfter(deadline: when) {
+//                   self.note.becomeFirstResponder()
+//                }
+//                mainViewTopConstraint.constant =  0
+//                note.becomeFirstResponder()
+//                UIView.animate(withDuration: 0.33, animations: { () -> Void in
+//                    self.weatherIcon.alpha = 1
+//                    self.dateLabel.alpha = 1
+//                    self.temperatureLabel.alpha = 1
+//                    self.archiveTableView.alpha = 0
+//                }) { (Finished) -> Void in
+//                }
             }
 //            print(mainViewTopConstraint.constant)
 
